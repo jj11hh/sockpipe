@@ -1,0 +1,17 @@
+# core
+
+[ ] IP stack        <-- Current Working
+[ ] UDP stack
+[ ] TCP stack
+[ ] Filter
+[ ] Mux/Hub
+
+# extensions
+
+[ ] TUN device
+[ ] SOCKS5 server
+[ ] SOCKS5 client
+[ ] WebSocket
+[ ] *Audio Pipe
+[ ] *UART
+
