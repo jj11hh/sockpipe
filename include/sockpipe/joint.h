@@ -9,14 +9,14 @@
 
 struct _SP_Joint;
 
-DEF_META(SP_Joint) {
-    type_t type;
-
-    // VTable
-    int (* get_n_interface)(struct _SP_Joint *self);
-    Nullable_SP_Interface (* get_interface)(struct _SP_Joint *self, int index);
-
+#define META_SP_Joint\
+    type_t type;\
+    int (* get_n_interface)(struct _SP_Joint *self);\
+    Nullable_SP_Interface (* get_interface)(struct _SP_Joint *self, int index);\
     void (* del) (struct _SP_Joint *self);
+
+DEF_META(SP_Joint) {
+    META_SP_Joint
 };
 
 typedef struct _SP_Joint {
@@ -26,17 +26,10 @@ typedef struct _SP_Joint {
 
 DEF_NULLABLE(SP_Joint);
 
-static inline void SP_Joint_init(SP_Joint *self) {(void)self;} // == 0
-static inline void SP_Joint_del (SP_Joint *self) {
-    INVOKE_VIRTUAL(self, del); 
-}
+GEN_Virtual(void, SP_Joint, SP_Joint, del)
+GEN_Virtual(int, SP_Joint, SP_Joint, get_n_interface)
+GEN_Virtual(Nullable_SP_Interface, SP_Joint, SP_Joint, get_interface, int, index)
 
-static inline int SP_Joint_get_n_interface(SP_Joint *self) {
-    return INVOKE_VIRTUAL(self, get_n_interface);    
-}
-
-static inline Nullable_SP_Interface SP_Joint_get_interface(SP_Joint *self, int index) {
-    return INVOKE_VIRTUAL(self, get_interface, index);
-}
+GEN_Destroy(SP_Joint)
 
 #endif

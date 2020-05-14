@@ -11,47 +11,27 @@
 
 struct _SP_Interface;
 
-DEF_META(SP_Interface) {
-    type_t type;
-
-    // VTable
-    bool (* can_send) (struct _SP_Interface *self);
-    bool (* can_recv) (struct _SP_Interface *self);
-
-    int (* send) (struct _SP_Interface *self, SP_Packet *packet);
-    Nullable_SP_Packet (* recv) (struct _SP_Interface *self);
-
+#define META_SP_Interface\
+    type_t type;\
+    bool (* can_send) (struct _SP_Interface *self);\
+    bool (* can_recv) (struct _SP_Interface *self);\
+    int (* send) (struct _SP_Interface *self, SP_Packet *packet);\
+    Nullable_SP_Packet (* recv) (struct _SP_Interface *self);\
     void (* del) (struct _SP_Interface *self);
-};
+
+
+DEF_META(SP_Interface) { META_SP_Interface };
 
 typedef struct _SP_Interface {
     META(SP_Interface);
-
-    
 } SP_Interface;
 
 DEF_NULLABLE(SP_Interface)
 
-static inline void SP_Interface_init(SP_Interface *self){} // == 0
-
-VIRTUAL static inline void SP_Interface_del(SP_Interface *self){
-    INVOKE_VIRTUAL(self, del);    
-}
-
-static inline bool SP_Interface_can_send (SP_Interface *self){
-    return INVOKE_VIRTUAL(self, can_send);
-}
-
-static inline bool SP_Interface_can_recv (SP_Interface *self){
-    return INVOKE_VIRTUAL(self, can_recv);
-}
-
-static inline int SP_Interface_send (SP_Interface *self, SP_Packet *packet){
-    return INVOKE_VIRTUAL(self, send, packet);
-}
-
-static inline Nullable_SP_Packet SP_Interface_recv (SP_Interface *self){
-    return INVOKE_VIRTUAL(self, recv);
-}
+GEN_Virtual(void, SP_Interface, SP_Interface, del)
+GEN_Virtual(bool, SP_Interface, SP_Interface, can_send)
+GEN_Virtual(bool, SP_Interface, SP_Interface, can_recv)
+GEN_Virtual(int, SP_Interface, SP_Interface, send, SP_Packet *, packet)
+GEN_Virtual(Nullable_SP_Packet, SP_Interface, SP_Interface, recv)
 
 #endif //SOCKPIPE_INTERFACE
