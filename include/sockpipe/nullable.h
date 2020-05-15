@@ -12,9 +12,10 @@ typedef struct _Nullable_ ## T {\
 
 #define SP_isNull(nullable) ((nullable).ptr == (void *)0)
 
-#define SP_unwrap(nullable) ({\
-    assert(! SP_isNull(nullable));\
-    (nullable).ptr;\
-})\
+#define SP_unwrap(_nullable) ({\
+    void *ptr = (void *) (_nullable).ptr;\
+    assert(ptr != NULL);\
+    ptr;\
+})
 
 #endif //SOCKPIPE_NULLABLE

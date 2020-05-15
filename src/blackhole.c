@@ -1,11 +1,28 @@
 #include <string.h>
 #include "sockpipe/blackhole.h"
 
+#define CHECK(r, msg) \
+do{if (r) {\
+    log_error("%s: %s", msg, uv_strerror(r));\
+    exit(1);\
+}}while(0)
+
+#define get_parent(child, parentType, fieldname)\
+    (parentType *)((char *)(child) - offsetof(parentType, fieldname))
+
+#define NOTIFY(joint)\
+do {\
+    if (joint->interface.cb_notify != NULL){\
+        joint->interface.cb_notify(joint->interface.userdata);\
+    }\
+while(0)
+
 static bool can_send (SP_Interface *self);
 static bool can_recv (SP_Interface *self);
 static int send (SP_Interface *self, SP_Packet *packet);
 static Nullable_SP_Packet recv (SP_Interface *self);
 static void ifdel (SP_Interface *self);
+static void set_notify (SP_Interface *self, cb_notify_t notify, void *data);
 
 static DEF_META(SP_BlackholeIF) ifmeta
     = { 
@@ -14,11 +31,14 @@ static DEF_META(SP_BlackholeIF) ifmeta
         .can_recv = &can_recv,
         .send = &send,
         .recv = &recv,
-        .del = &ifdel
+        .del = &ifdel,
+        .set_notify = &set_notify
       };
 
 void SP_BlackholeIF_init(SP_BlackholeIF *self){
     self->meta = &ifmeta;
+    self->cb_notify = NULL;
+    self->userdata = NULL;
 }
 
 static bool can_send (SP_Interface *self) {
@@ -28,12 +48,24 @@ static bool can_send (SP_Interface *self) {
 
 static bool can_recv (SP_Interface *self) {
     (void)self;
+    // Block forever
     return false;
 }
 
+static void set_notify (SP_Interface *self, cb_notify_t notify, void *data)
+{
+    ((SP_BlackholeIF *)self)->cb_notify = notify;
+    ((SP_BlackholeIF *)self)->userdata = data;
+}
+
 static int send (SP_Interface *self, SP_Packet *packet){
-    (void)self;
+    log_debug("SP_Blackhole: droped %d bytes", packet->data_size);
     SP_Packet_downcount(packet); // Release it
+    SP_BlackholeIF *iface = (SP_BlackholeIF*)self;
+
+    if (iface->cb_notify != NULL){
+        iface->cb_notify(iface->userdata);
+    }
 
     return 0; // No Error
 }

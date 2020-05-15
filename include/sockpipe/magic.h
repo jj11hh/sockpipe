@@ -22,6 +22,15 @@ typedef int type_t;
 
 #define DELETE(O) DELETE_WITH_T(TYPE_OF(O), O)
 
+#define _CREATE_WITH_T(T, O, ...) T * O = Create_ ## T ( __VA_ARGS__ )
+#define CREATE_WITH_T(T, O, ...) _CREATE_WITH_T(T, O, __VA_ARGS__)
+#define CREATE(O, ...) CREATE_WITH_T(TYPE_OF(O), O, __VA_ARGS__)
+
+
+#define _SCOPE_CREATE_WITH_T(T, O, ...) * O = Create_ ## T ( __VA_ARGS__ )
+#define SCOPE_CREATE_WITH_T(T, O, ...) _SCOPE_CREATE_WITH_T(T, O, __VA_ARGS__)
+#define SCOPE_CREATE(O, ...) SCOPE(TYPE_OF(O)) SCOPE_CREATE_WITH_T(TYPE_OF(O), O, __VA_ARGS__)
+
 #define _DEF_METHOD(T, M) T ## _ ## M
 #define DEF_METHOD(T, M) _DEF_METHOD(T, M)
 
@@ -135,14 +144,13 @@ static inline void __Cleanup_ ## T ( T ** selfp) {\
 #define _CLEANUP(T) __Cleanup_ ## T
 #define CLEANUP(T) _CLEANUP(T)
 
+#define SCOPE(T) __attribute__((cleanup (CLEANUP(T)))) T
+
 #define META(T) DEF_META(T) * meta
 
 #define GEN_Create(...) _GEN_Create(__VA_ARGS__)
 #define GEN_Destroy(...) _GEN_Destroy(__VA_ARGS__)
 #define GEN_Virtual(...) _GEN_Virtual(__VA_ARGS__)
 #define GEN_Cleanup(...) _GEN_Cleanup(__VA_ARGS__)
-
-#define SCOPE(T) __attribute__((cleanup (CLEANUP(T)))) T
-
 
 #endif //SOCKPIPE_MAGIC

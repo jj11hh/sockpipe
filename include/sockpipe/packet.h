@@ -20,10 +20,16 @@ typedef struct {
     int rc;                 // reference count
 
     uint8_t version;        // 4 for IPV4, 6 for IPV6
-    uint16_t protocal;      // Protocol
+    uint16_t protocol;      // Protocol
     uint8_t ttl;            // Time to Live
-    uint8_t s_addr [16];    // Source address
-    uint8_t d_addr [16];    // Dest address
+    union {                 // Source address
+        uint32_t s_addr4;
+        uint8_t s_addr6 [16];
+    };
+    union {                 // Destination Address
+        uint32_t d_addr4;
+        uint8_t d_addr6 [16];
+    };
     uint16_t s_port;        // Source Port
     uint16_t d_port;        // Dest Port
 

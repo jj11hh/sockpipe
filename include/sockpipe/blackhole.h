@@ -14,6 +14,8 @@ DEF_META(SP_BlackholeIF) {
 
 typedef struct _SP_BlackholeIF {
     META(SP_BlackholeIF);
+    cb_notify_t cb_notify;
+    void *userdata;
 } SP_BlackholeIF;
 
 DEF_NULLABLE(SP_BlackholeIF)

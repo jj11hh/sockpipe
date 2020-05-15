@@ -11,13 +11,16 @@
 
 struct _SP_Interface;
 
+typedef void (*cb_notify_t)(void *);
+
 #define META_SP_Interface\
     type_t type;\
     bool (* can_send) (struct _SP_Interface *self);\
     bool (* can_recv) (struct _SP_Interface *self);\
     int (* send) (struct _SP_Interface *self, SP_Packet *packet);\
     Nullable_SP_Packet (* recv) (struct _SP_Interface *self);\
-    void (* del) (struct _SP_Interface *self);
+    void (* del) (struct _SP_Interface *self);\
+    void (* set_notify) (struct _SP_Interface *self, cb_notify_t notify, void *data);
 
 
 DEF_META(SP_Interface) { META_SP_Interface };
@@ -33,5 +36,6 @@ GEN_Virtual(bool, SP_Interface, SP_Interface, can_send)
 GEN_Virtual(bool, SP_Interface, SP_Interface, can_recv)
 GEN_Virtual(int, SP_Interface, SP_Interface, send, SP_Packet *, packet)
 GEN_Virtual(Nullable_SP_Packet, SP_Interface, SP_Interface, recv)
+GEN_Virtual(void, SP_Interface, SP_Interface, set_notify, cb_notify_t, notify, void *, data)
 
 #endif //SOCKPIPE_INTERFACE

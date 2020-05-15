@@ -10,16 +10,24 @@
 #include <stdbool.h>
 
 
+struct _SP_Application;
+
+typedef struct {
+    struct _SP_Application *app;
+    int id; // ID of interface;  
+} SP_InformData;
+
 /* sockpipe Application Class */
 
 typedef struct _SP_Application {
-    //SP_List *notify_queue;
+    SP_List *notify_queue;
     uv_loop_t *event_loop;
     SP_Joint **joints;
     int n_joint;
     SP_Interface **ifs;
     int n_if;
     int *connections;
+    SP_InformData *inform_datas;
 } SP_Application;
 
 void SP_Application_init(SP_Application *app);
