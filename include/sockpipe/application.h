@@ -20,6 +20,7 @@ typedef struct {
 /* sockpipe Application Class */
 
 typedef struct _SP_Application {
+    int dirty;
     SP_List *notify_queue;
     uv_loop_t *event_loop;
     SP_Joint **joints;

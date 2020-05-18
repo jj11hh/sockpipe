@@ -79,6 +79,7 @@ void SP_UdpPort_init(SP_UdpPort *self,
                      const struct sockaddr *addr){
     int r;
     self->meta = &jo_meta;
+    self->pending = NULL;
     self->incoming = NULL;
     self->outgoing = NULL;
     SP_UdpPortIF_init(&self->interface);
@@ -97,51 +98,70 @@ on_recv (uv_udp_t* handle,
          const struct sockaddr* addr, 
          unsigned flags) {
 
+    if (rcvbuf->base == NULL) { // error occured, no need for cleanup
+        return;
+    }
+
     SP_Packet *packet = get_parent(rcvbuf->base, SP_Packet, data);
-    SP_UdpPort *joint;
+    SP_UdpPort *joint = get_parent(handle, SP_UdpPort, server);
     (void)flags;
 
-    if (nread <= 0)
+    if (nread < 0) // A error occured, release packet
         goto CLEANUP;
 
-    joint = get_parent(handle, SP_UdpPort, server);
-
-    if (joint->incoming != NULL){ // Last packet not recv
+    if (joint->incoming != NULL){ // last packet has not be cleaned
         log_warn("udp packet silently droped");
         goto CLEANUP;
     }
+    
+    // EOF
+    if (nread == 0 && addr == NULL) {
+        joint->incoming = joint->pending;
+        joint->pending = NULL;
+        // Inform application that this joint is ready
+        NOTIFY(joint);       
 
-    struct sockaddr_storage d_addr;
-    int addrlen = sizeof(d_addr);
-    int r = uv_udp_getsockname(handle, (struct sockaddr *)&d_addr, &addrlen);
-    CHECK(r, "uv_udp_getsockname");
-
-    packet->data_size = (size_t) nread;
-    packet->protocol = SP_UDP;
-    if (addr->sa_family == AF_INET) { // IPv4
-        const struct sockaddr_in *addr4 = (const struct sockaddr_in*) addr;
-        struct sockaddr_in *d_addr4 = (struct sockaddr_in*) &d_addr;
-        packet->version = 4;
-        packet->s_port = ntohs((uint16_t)addr4->sin_port);
-        packet->d_port = ntohs((uint16_t)d_addr4->sin_port);
-        packet->s_addr4 = addr4->sin_addr.s_addr;
-        packet->d_addr4 = d_addr4->sin_addr.s_addr;
+        return;
     }
-    else if (addr->sa_family == AF_INET6) { // IPv6
-        const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6*) addr;
-        struct sockaddr_in6 *d_addr6 = (struct sockaddr_in6*) &d_addr;
-        packet->version = 6;
-        packet->s_port = ntohs((uint16_t)addr6->sin6_port);
-        packet->d_port = ntohs((uint16_t)d_addr6->sin6_port);
-        memcpy((void*)packet->s_addr6, (const void*)&addr6->sin6_addr, 2);
-        memcpy((void*)packet->d_addr6, (const void*)&d_addr6->sin6_addr, 2);
+
+    if (joint->pending == NULL) { // a new udp packet is arrived
+        struct sockaddr_storage d_addr;
+        int addrlen = sizeof(d_addr);
+        int r = uv_udp_getsockname(handle, (struct sockaddr *)&d_addr, &addrlen);
+        CHECK(r, "uv_udp_getsockname");
+
+        packet->data_size = (size_t) nread;
+        packet->protocol = SP_UDP;
+        if (addr->sa_family == AF_INET) { // IPv4
+            const struct sockaddr_in *addr4 = (const struct sockaddr_in*) addr;
+            struct sockaddr_in *d_addr4 = (struct sockaddr_in*) &d_addr;
+            packet->version = 4;
+            packet->s_port = ntohs((uint16_t)addr4->sin_port);
+            packet->d_port = ntohs((uint16_t)d_addr4->sin_port);
+            packet->s_addr4 = addr4->sin_addr.s_addr;
+            packet->d_addr4 = d_addr4->sin_addr.s_addr;
+        }
+        else if (addr->sa_family == AF_INET6) { // IPv6
+            const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6*) addr;
+            struct sockaddr_in6 *d_addr6 = (struct sockaddr_in6*) &d_addr;
+            packet->version = 6;
+            packet->s_port = ntohs((uint16_t)addr6->sin6_port);
+            packet->d_port = ntohs((uint16_t)d_addr6->sin6_port);
+            memcpy((void*)packet->s_addr6, (const void*)&addr6->sin6_addr, 2);
+            memcpy((void*)packet->d_addr6, (const void*)&d_addr6->sin6_addr, 2);
+        }
+        else assert(0); // Will not reach here
+
+        joint->pending = packet;
     }
-    else assert(0); // Will not reach here
+    else { // new data for pending packet
+        SP_Packet *pending = joint->pending;
 
-    joint->incoming = packet;
-
-    // Inform application joint is ready
-    NOTIFY(joint);
+        assert(pending->data_size + nread < 65536);
+        memcpy(&pending->data[pending->data_size], rcvbuf->base, nread);
+        pending->data_size += nread;
+        goto CLEANUP; // new packet is useless
+    }
 
     return;
 
@@ -157,7 +177,7 @@ on_alloc (uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
     buf->len = suggested_size;
 }
 
-/* distructor */
+/* destructor */
 static void jo_del(SP_Joint *_self){
     SP_UdpPort *self = (SP_UdpPort *) _self;
     SP_Interface_del((SP_Interface *)&self->interface);

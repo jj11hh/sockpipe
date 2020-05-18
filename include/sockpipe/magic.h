@@ -153,4 +153,10 @@ static inline void __Cleanup_ ## T ( T ** selfp) {\
 #define GEN_Virtual(...) _GEN_Virtual(__VA_ARGS__)
 #define GEN_Cleanup(...) _GEN_Cleanup(__VA_ARGS__)
 
+#define CHECK(r, msg) \
+do{if (r) {\
+    log_error("%s: %s", msg, uv_strerror(r));\
+    exit(1);\
+}}while(0)
+
 #endif //SOCKPIPE_MAGIC

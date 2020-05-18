@@ -29,6 +29,7 @@ typedef struct _SP_UdpPort {
     META(SP_UdpPort);
     SP_UdpPortIF interface;
     uv_udp_t server;
+    SP_Packet *pending;
     SP_Packet *incoming;
     SP_Packet *outgoing;
 } SP_UdpPort;

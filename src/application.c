@@ -1,4 +1,4 @@
-#include "sockpipe/application.h"
+#include "sockpipe/application.h" 
 #include "sockpipe/nullable.h"
 #include <string.h>
 #include <stdlib.h>
@@ -104,13 +104,19 @@ static void cb_notify(void *data){
     log_debug("interface %d is ready", userdata->id);
     int counterpart = app->connections[userdata->id];
     if (counterpart != -1){
-        SP_List_append(app->notify_queue, (void *)(intptr_t)userdata->id);
+        // We will make the check of queue only happen once for a sequence of notifications
+        // But a packet arrival event may make a interface notify more than once
+        // If there is no element in the queue, we call the update function
+        // and for other more notifications, just omit it
+        if (app->notify_queue->size == 0) {
+            async_update *handle = SP_Alloc(sizeof(async_update));
+            log_debug("create async handle %p", (void *)handle);
+            handle->app = app;
+            uv_async_init(app->event_loop, (uv_async_t*) handle, &cb_async_update);
+            uv_async_send((uv_async_t*)handle);
+        }
 
-        async_update *handle = SP_Alloc(sizeof(async_update));
-        log_debug("create async handle %p", (void *)handle);
-        handle->app = app;
-        uv_async_init(app->event_loop, (uv_async_t*) handle, &cb_async_update);
-        uv_async_send((uv_async_t*)handle);
+        SP_List_append(app->notify_queue, (void *)(intptr_t)userdata->id);
     }
 }
 
