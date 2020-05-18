@@ -1,0 +1,6 @@
+#ifndef SOCKPIPE_TAGS
+#define SOCKPIPE_TAGS
+
+#define SPTAG_DROP 0
+
+#endif //SOCKPIPE_TAGS
